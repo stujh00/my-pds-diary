@@ -1,0 +1,840 @@
+{
+  "schema_version": 2,
+  "application": "T06 PDS Diary",
+  "database": "Supabase PostgreSQL",
+  "migration": "supabase/001_schema.sql",
+  "tables": {
+    "pds_completions": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "task_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "cycle",
+          "type": "integer",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "constraints": [
+        {
+          "name": "pds_completions_created_at_not_null",
+          "definition": "NOT NULL created_at"
+        },
+        {
+          "name": "pds_completions_cycle_not_null",
+          "definition": "NOT NULL cycle"
+        },
+        {
+          "name": "pds_completions_id_not_null",
+          "definition": "NOT NULL id"
+        },
+        {
+          "name": "pds_completions_pkey",
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "name": "pds_completions_task_id_cycle_key",
+          "definition": "UNIQUE (task_id, cycle)"
+        },
+        {
+          "name": "pds_completions_task_id_fkey",
+          "definition": "FOREIGN KEY (task_id) REFERENCES pds_tasks(id)"
+        },
+        {
+          "name": "pds_completions_task_id_not_null",
+          "definition": "NOT NULL task_id"
+        }
+      ]
+    },
+    "pds_plan_versions": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "plan_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "revision",
+          "type": "integer",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "snapshot",
+          "type": "jsonb",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "constraints": [
+        {
+          "name": "pds_plan_versions_created_at_not_null",
+          "definition": "NOT NULL created_at"
+        },
+        {
+          "name": "pds_plan_versions_id_not_null",
+          "definition": "NOT NULL id"
+        },
+        {
+          "name": "pds_plan_versions_pkey",
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "name": "pds_plan_versions_plan_id_fkey",
+          "definition": "FOREIGN KEY (plan_id) REFERENCES pds_plans(id)"
+        },
+        {
+          "name": "pds_plan_versions_plan_id_not_null",
+          "definition": "NOT NULL plan_id"
+        },
+        {
+          "name": "pds_plan_versions_plan_id_revision_key",
+          "definition": "UNIQUE (plan_id, revision)"
+        },
+        {
+          "name": "pds_plan_versions_revision_not_null",
+          "definition": "NOT NULL revision"
+        },
+        {
+          "name": "pds_plan_versions_snapshot_not_null",
+          "definition": "NOT NULL snapshot"
+        }
+      ]
+    },
+    "pds_plans": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "start_date",
+          "type": "date",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "end_date",
+          "type": "date",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "priority",
+          "type": "integer",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "success_criteria",
+          "type": "text",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "estimated_minutes",
+          "type": "integer",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "revision",
+          "type": "integer",
+          "nullable": false,
+          "default": "1"
+        },
+        {
+          "name": "improvement",
+          "type": "text",
+          "nullable": false,
+          "default": "''::text"
+        },
+        {
+          "name": "source_review_id",
+          "type": "uuid",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "constraints": [
+        {
+          "name": "pds_plans_check",
+          "definition": "CHECK ((end_date >= start_date))"
+        },
+        {
+          "name": "pds_plans_created_at_not_null",
+          "definition": "NOT NULL created_at"
+        },
+        {
+          "name": "pds_plans_end_date_not_null",
+          "definition": "NOT NULL end_date"
+        },
+        {
+          "name": "pds_plans_estimated_minutes_check",
+          "definition": "CHECK (((estimated_minutes >= 0) AND (estimated_minutes <= 1000000)))"
+        },
+        {
+          "name": "pds_plans_estimated_minutes_not_null",
+          "definition": "NOT NULL estimated_minutes"
+        },
+        {
+          "name": "pds_plans_id_not_null",
+          "definition": "NOT NULL id"
+        },
+        {
+          "name": "pds_plans_improvement_check",
+          "definition": "CHECK ((length(improvement) <= 3000))"
+        },
+        {
+          "name": "pds_plans_improvement_not_null",
+          "definition": "NOT NULL improvement"
+        },
+        {
+          "name": "pds_plans_pkey",
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "name": "pds_plans_priority_check",
+          "definition": "CHECK (((priority >= 1) AND (priority <= 3)))"
+        },
+        {
+          "name": "pds_plans_priority_not_null",
+          "definition": "NOT NULL priority"
+        },
+        {
+          "name": "pds_plans_revision_not_null",
+          "definition": "NOT NULL revision"
+        },
+        {
+          "name": "pds_plans_source_review_id_fkey",
+          "definition": "FOREIGN KEY (source_review_id) REFERENCES pds_reviews(id)"
+        },
+        {
+          "name": "pds_plans_start_date_not_null",
+          "definition": "NOT NULL start_date"
+        },
+        {
+          "name": "pds_plans_success_criteria_check",
+          "definition": "CHECK (((length(success_criteria) >= 1) AND (length(success_criteria) <= 3000)))"
+        },
+        {
+          "name": "pds_plans_success_criteria_not_null",
+          "definition": "NOT NULL success_criteria"
+        },
+        {
+          "name": "pds_plans_title_check",
+          "definition": "CHECK (((length(TRIM(BOTH FROM title)) >= 1) AND (length(TRIM(BOTH FROM title)) <= 200)))"
+        },
+        {
+          "name": "pds_plans_title_not_null",
+          "definition": "NOT NULL title"
+        },
+        {
+          "name": "pds_plans_updated_at_not_null",
+          "definition": "NOT NULL updated_at"
+        },
+        {
+          "name": "pds_plans_workspace_id_fkey",
+          "definition": "FOREIGN KEY (workspace_id) REFERENCES pds_workspaces(id)"
+        },
+        {
+          "name": "pds_plans_workspace_id_not_null",
+          "definition": "NOT NULL workspace_id"
+        }
+      ]
+    },
+    "pds_requests": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "action",
+          "type": "text",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "payload",
+          "type": "jsonb",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "result",
+          "type": "jsonb",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "constraints": [
+        {
+          "name": "pds_requests_action_not_null",
+          "definition": "NOT NULL action"
+        },
+        {
+          "name": "pds_requests_created_at_not_null",
+          "definition": "NOT NULL created_at"
+        },
+        {
+          "name": "pds_requests_id_not_null",
+          "definition": "NOT NULL id"
+        },
+        {
+          "name": "pds_requests_payload_not_null",
+          "definition": "NOT NULL payload"
+        },
+        {
+          "name": "pds_requests_pkey",
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "name": "pds_requests_result_not_null",
+          "definition": "NOT NULL result"
+        }
+      ]
+    },
+    "pds_reviews": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "plan_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "from_date",
+          "type": "date",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "to_date",
+          "type": "date",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "improvement",
+          "type": "text",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "metrics",
+          "type": "jsonb",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "constraints": [
+        {
+          "name": "pds_reviews_check",
+          "definition": "CHECK ((to_date >= from_date))"
+        },
+        {
+          "name": "pds_reviews_created_at_not_null",
+          "definition": "NOT NULL created_at"
+        },
+        {
+          "name": "pds_reviews_from_date_not_null",
+          "definition": "NOT NULL from_date"
+        },
+        {
+          "name": "pds_reviews_id_not_null",
+          "definition": "NOT NULL id"
+        },
+        {
+          "name": "pds_reviews_improvement_check",
+          "definition": "CHECK (((length(TRIM(BOTH FROM improvement)) >= 1) AND (length(TRIM(BOTH FROM improvement)) <= 3000)))"
+        },
+        {
+          "name": "pds_reviews_improvement_not_null",
+          "definition": "NOT NULL improvement"
+        },
+        {
+          "name": "pds_reviews_metrics_not_null",
+          "definition": "NOT NULL metrics"
+        },
+        {
+          "name": "pds_reviews_pkey",
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "name": "pds_reviews_plan_id_fkey",
+          "definition": "FOREIGN KEY (plan_id) REFERENCES pds_plans(id)"
+        },
+        {
+          "name": "pds_reviews_plan_id_not_null",
+          "definition": "NOT NULL plan_id"
+        },
+        {
+          "name": "pds_reviews_to_date_not_null",
+          "definition": "NOT NULL to_date"
+        }
+      ]
+    },
+    "pds_sessions": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "task_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "ended_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "actual_minutes",
+          "type": "integer",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "blocker",
+          "type": "text",
+          "nullable": false,
+          "default": "''::text"
+        },
+        {
+          "name": "note",
+          "type": "text",
+          "nullable": false,
+          "default": "''::text"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "constraints": [
+        {
+          "name": "pds_sessions_actual_minutes_check",
+          "definition": "CHECK (((actual_minutes >= 1) AND (actual_minutes <= 1440)))"
+        },
+        {
+          "name": "pds_sessions_actual_minutes_not_null",
+          "definition": "NOT NULL actual_minutes"
+        },
+        {
+          "name": "pds_sessions_blocker_check",
+          "definition": "CHECK ((length(blocker) <= 3000))"
+        },
+        {
+          "name": "pds_sessions_blocker_not_null",
+          "definition": "NOT NULL blocker"
+        },
+        {
+          "name": "pds_sessions_check",
+          "definition": "CHECK ((ended_at > started_at))"
+        },
+        {
+          "name": "pds_sessions_check1",
+          "definition": "CHECK (((actual_minutes)::numeric <= ceil((EXTRACT(epoch FROM (ended_at - started_at)) / (60)::numeric))))"
+        },
+        {
+          "name": "pds_sessions_created_at_not_null",
+          "definition": "NOT NULL created_at"
+        },
+        {
+          "name": "pds_sessions_ended_at_not_null",
+          "definition": "NOT NULL ended_at"
+        },
+        {
+          "name": "pds_sessions_id_not_null",
+          "definition": "NOT NULL id"
+        },
+        {
+          "name": "pds_sessions_note_check",
+          "definition": "CHECK ((length(note) <= 3000))"
+        },
+        {
+          "name": "pds_sessions_note_not_null",
+          "definition": "NOT NULL note"
+        },
+        {
+          "name": "pds_sessions_pkey",
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "name": "pds_sessions_started_at_not_null",
+          "definition": "NOT NULL started_at"
+        },
+        {
+          "name": "pds_sessions_task_id_fkey",
+          "definition": "FOREIGN KEY (task_id) REFERENCES pds_tasks(id)"
+        },
+        {
+          "name": "pds_sessions_task_id_not_null",
+          "definition": "NOT NULL task_id"
+        }
+      ]
+    },
+    "pds_tasks": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "plan_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "due_date",
+          "type": "date",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "priority",
+          "type": "integer",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "tags",
+          "type": "ARRAY",
+          "nullable": false,
+          "default": "'{}'::text[]"
+        },
+        {
+          "name": "estimated_minutes",
+          "type": "integer",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": false,
+          "default": "'open'::text"
+        },
+        {
+          "name": "completion_cycle",
+          "type": "integer",
+          "nullable": false,
+          "default": "1"
+        },
+        {
+          "name": "revision",
+          "type": "integer",
+          "nullable": false,
+          "default": "1"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "constraints": [
+        {
+          "name": "pds_tasks_completion_cycle_not_null",
+          "definition": "NOT NULL completion_cycle"
+        },
+        {
+          "name": "pds_tasks_created_at_not_null",
+          "definition": "NOT NULL created_at"
+        },
+        {
+          "name": "pds_tasks_due_date_not_null",
+          "definition": "NOT NULL due_date"
+        },
+        {
+          "name": "pds_tasks_estimated_minutes_check",
+          "definition": "CHECK (((estimated_minutes >= 0) AND (estimated_minutes <= 1000000)))"
+        },
+        {
+          "name": "pds_tasks_estimated_minutes_not_null",
+          "definition": "NOT NULL estimated_minutes"
+        },
+        {
+          "name": "pds_tasks_id_not_null",
+          "definition": "NOT NULL id"
+        },
+        {
+          "name": "pds_tasks_pkey",
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "name": "pds_tasks_plan_id_fkey",
+          "definition": "FOREIGN KEY (plan_id) REFERENCES pds_plans(id)"
+        },
+        {
+          "name": "pds_tasks_plan_id_not_null",
+          "definition": "NOT NULL plan_id"
+        },
+        {
+          "name": "pds_tasks_priority_check",
+          "definition": "CHECK (((priority >= 1) AND (priority <= 3)))"
+        },
+        {
+          "name": "pds_tasks_priority_not_null",
+          "definition": "NOT NULL priority"
+        },
+        {
+          "name": "pds_tasks_revision_not_null",
+          "definition": "NOT NULL revision"
+        },
+        {
+          "name": "pds_tasks_status_check",
+          "definition": "CHECK ((status = ANY (ARRAY['open'::text, 'done'::text])))"
+        },
+        {
+          "name": "pds_tasks_status_not_null",
+          "definition": "NOT NULL status"
+        },
+        {
+          "name": "pds_tasks_tags_check",
+          "definition": "CHECK ((cardinality(tags) <= 10))"
+        },
+        {
+          "name": "pds_tasks_tags_check1",
+          "definition": "CHECK ((length(array_to_string(tags, ','::text)) <= 500))"
+        },
+        {
+          "name": "pds_tasks_tags_not_null",
+          "definition": "NOT NULL tags"
+        },
+        {
+          "name": "pds_tasks_title_check",
+          "definition": "CHECK (((length(TRIM(BOTH FROM title)) >= 1) AND (length(TRIM(BOTH FROM title)) <= 200)))"
+        },
+        {
+          "name": "pds_tasks_title_not_null",
+          "definition": "NOT NULL title"
+        },
+        {
+          "name": "pds_tasks_updated_at_not_null",
+          "definition": "NOT NULL updated_at"
+        }
+      ]
+    },
+    "pds_workspaces": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "owner_id",
+          "type": "uuid",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "nullable": false,
+          "default": null
+        }
+      ],
+      "constraints": [
+        {
+          "name": "pds_workspaces_id_not_null",
+          "definition": "NOT NULL id"
+        },
+        {
+          "name": "pds_workspaces_owner_id_fkey",
+          "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id)"
+        },
+        {
+          "name": "pds_workspaces_pkey",
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "name": "pds_workspaces_title_not_null",
+          "definition": "NOT NULL title"
+        }
+      ]
+    }
+  },
+  "relationships": [
+    "workspace 1:N plans",
+    "plan 1:N plan_versions",
+    "plan 1:N tasks",
+    "task 1:N sessions",
+    "task 1:N completions",
+    "plan 1:N reviews",
+    "plan.source_review_id -> reviews.id",
+    "workspace.owner_id -> auth.users.id (nullable until T07)"
+  ],
+  "date_rules": {
+    "timezone": "Asia/Seoul",
+    "date_only": [
+      "plans.start_date",
+      "plans.end_date",
+      "tasks.due_date",
+      "reviews.from_date",
+      "reviews.to_date"
+    ],
+    "timestamps": "timestamptz; ISO8601 with UTC offset on export; UI input always +09:00; render Asia/Seoul",
+    "today": "Asia/Seoul calendar date",
+    "range": "inclusive task.due_date between from_date and to_date, scoped to selected plan",
+    "unit": "integer minute",
+    "actual": "manual focused study minutes, positive, <= ceil(elapsed seconds / 60), max 1440 per session; end must not be in future",
+    "browser_today": "Intl.DateTimeFormat Asia/Seoul; device clock must be correct",
+    "review_today": "database now() at time zone Asia/Seoul"
+  },
+  "metrics": {
+    "planned": "count non-deleted target tasks",
+    "done": "count target tasks status=done",
+    "delayed": "count target tasks status=open AND due_date < Seoul today",
+    "blocked": "count DISTINCT target task IDs with non-whitespace blocker in any session",
+    "estimated": "sum target task estimated_minutes",
+    "actual": "sum all sessions.actual_minutes for target tasks regardless of session date",
+    "difference": "actual - estimated",
+    "empty": 0,
+    "drilldown": "same target predicates; each task expands its execution records"
+  },
+  "history": {
+    "plans": "after insert/update snapshot; before update increment revision; old versions preserved",
+    "tasks": "soft deletion; excluded from current lists/metrics but exported",
+    "completion": "unique(task_id,cycle); reopen increments cycle; current done is task state, not event count",
+    "requests": "unique idempotency UUID; same action/payload returns saved result, changed payload rejects; workspace row lock serializes mutations",
+    "review": "snapshot metrics plus task_ids/session_ids as_of; improvement and next plan committed in one transaction"
+  },
+  "security": {
+    "t06": "deliberately public GET/POST Vercel API, no authentication",
+    "db": "RLS enabled; no anon/authenticated grants; RPC service_role only",
+    "key": "Vercel server environment only",
+    "t07": "replace unscoped RPC and public API; enforce authenticated owner; see docs/T07-HANDOVER.md"
+  },
+  "export": {
+    "format": "one JSON",
+    "includes": [
+      "workspaces",
+      "plans",
+      "plan_versions",
+      "tasks including deleted",
+      "sessions",
+      "completions",
+      "reviews"
+    ],
+    "excludes": [
+      "internal request replay cache",
+      "credentials"
+    ],
+    "volatile_field": "exported_at"
+  }
+}
