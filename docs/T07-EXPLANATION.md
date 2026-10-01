@@ -19,6 +19,7 @@ Supabase JWT만 검증하는 방식도 검토했다. 로그아웃 후 기존 접
 ## ③ 어디를 어떻게 고쳤나
 
 - **가입:** `public/auth-ui.js` → POST `/api/auth` (`api/auth.js` signup) → Supabase `auth.signUp`. SDK는 서버 전용이다. 가입 성공 후 로그인 화면으로 전환한다. 같은 이메일 계정이 추가로 만들어지지 않는다.
+- **메일 인증:** 가입 API가 현재 앱의 `/login`을 `emailRedirectTo`로 지정한다. `supabase/templates/confirm-signup.html`을 Supabase에 설정하면 일회용 이메일 확인 값을 URL fragment로 받아 페이지 요청에 싣지 않는다. `public/auth-ui.js`가 주소에서 즉시 지우고 POST `/api/auth` confirm-email로 서버에 전달한다. 서버 `verifyOtp` 확인 후에만 인증 완료를 표시하며, 사용됨/만료/연결 실패는 별도 안내한다. 인증 서비스 JWT는 브라우저에 반환하지 않으며, 앱 세션은 비밀번호 로그인 때 별도로 발급한다. 메일 링크와 확인 요청도 제출할 때 가린다. 재전송은 계정 존재 여부를 밝히지 않는 같은 안내를 사용한다.
 - **로그인:** `public/auth-ui.js` → `api/auth.js` login → `auth.signInWithPassword` → `lib/auth.js` issueSession → `pds_auth_sessions`. 응답에는 Auth 토큰/비밀번호를 넣지 않고 앱 쿠키와 만료 시각만 전달한다. 없는 이메일과 잘못된 비밀번호는 같은 안내를 반환한다.
 - **로그아웃:** `public/app.js` logout → `api/auth.js` logout → `lib/auth.js` revoke. DB에서 해당 사용자의 모든 앱 세션을 revoked 처리한 뒤 쿠키를 지운다. 쿠키만 삭제하는 처리가 아니다. 비밀번호 변경도 현재 비밀번호를 검증하고 기존 세션을 폐기한 뒤 Auth 비밀번호를 바꾼다.
 - **자료 조회:** `public/app.js` bootstrap/load → GET `/api/diary` → `lib/auth.js` user → `pds_auth_owner` → `pds_snapshot`/`pds_read`. 쿠키 해시를 DB의 살아 있는 세션과 비교하고 그 세션의 user_id로 주인을 결정한다. 목록·한 건 조회·내보내기·이력 모두 같은 소유자 경로를 사용한다.

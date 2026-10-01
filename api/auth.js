@@ -12,9 +12,25 @@ export default async function handler(req,res){
  }
  if(req.method!=='POST'){res.setHeader('Allow','GET, POST');throw fail(405,'지원하지 않는 요청입니다.');}
  const body=readJSON(req,4000),client=supabase();
+ if(body.action==='confirm-email'){
+ if(typeof body.token_hash!=='string'||!/^[A-Za-z0-9_-]{20,256}$/.test(body.token_hash))throw fail(400,'인증 링크가 올바르지 않습니다. 받은 메일의 링크를 다시 열어 주세요.');
+ const {data,error}=await client.auth.verifyOtp({token_hash:body.token_hash,type:'email'});
+ if(error&&(error.status>=500||!error.status))throw fail(503,'인증 결과를 확인하지 못했습니다. 잠시 후 메일의 링크를 다시 열어 주세요.');
+ if(error||!data.user?.email_confirmed_at)throw fail(error?.status===429?429:400,error?.status===429?'요청이 많습니다. 잠시 후 메일의 링크를 다시 열어 주세요.':'인증 링크가 만료되었거나 이미 사용되었습니다. 먼저 로그인을 시도하고, 안 되면 인증 메일을 다시 받아 주세요.');
+ // Confirm email only. Provider JWTs stay on the server; app login is separate.
+ await client.auth.signOut({scope:'local'}).catch(()=>{});
+ return res.status(200).json({ok:true,message:'이메일 인증이 완료되었습니다. 가입한 이메일과 비밀번호로 로그인해 주세요.'});
+ }
+ if(body.action==='resend-confirmation'){
+ const {email}=credentials({email:body.email,password:'unused'});
+ const {error}=await client.auth.resend({type:'signup',email,options:{emailRedirectTo:new URL('/login',req.headers.origin).href}});
+ if(error?.status===429)throw fail(429,'요청이 많습니다. 잠시 후 다시 시도하세요.');
+ if(error&&(error.status>=500||!error.status))throw fail(503,'메일 요청을 처리하지 못했습니다. 잠시 후 다시 시도하세요.');
+ return res.status(200).json({ok:true,message:'인증이 필요한 계정이면 메일이 발송됩니다. 받은편지함과 스팸함을 확인하세요. 이미 인증했다면 바로 로그인할 수 있습니다.'});
+ }
  if(body.action==='signup'){
  const c=credentials(body);strongPassword(c.password);
- const {data,error}=await client.auth.signUp(c);
+ const {data,error}=await client.auth.signUp({...c,options:{emailRedirectTo:new URL('/login',req.headers.origin).href}});
  if(error||!data.user||data.user.identities?.length===0)throw fail(error?.status===429?429:409,error?.status===429?'요청이 많습니다. 잠시 후 다시 시도하세요.':'가입하지 못했습니다. 이미 가입한 이메일이거나 가입 조건에 맞지 않습니다.');
  return res.status(201).json({ok:true,message:data.session?'가입했습니다. 로그인해 주세요.':'가입했습니다. 이메일 인증을 마친 뒤 로그인해 주세요.'});
  }

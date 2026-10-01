@@ -32,6 +32,8 @@ try{
  let ca=expected(await login(emailA),200).cookie,cb=expected(await login(emailB),200).cookie;
  if(!ca||!cb)throw new Error('Session cookie missing.');
  const ua=expected(await send('A 본인 계정 확인','GET','/api/auth',null,ca),200).data.user,ub=expected(await send('B 본인 계정 확인','GET','/api/auth',null,cb),200).data.user;
+ console.log('같은 비밀번호를 사용하는 bcrypt 비교용 계정 ID: A='+ua.id+' B='+ub.id);
+ await write();const pause=createInterface({input:stdin,output:stdout});await pause.question('아직 두 계정의 비밀번호가 같을 때 Supabase SQL Editor에서 encrypted_password가 서로 다른지 기록하세요. 확인 후 Enter를 누르면 나머지 검사를 진행합니다: ');pause.close();
  const now=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul'}).format(new Date());
  async function seed(name,c){const p=expected(await save(name+' 본인 계획 생성','plan.save',{title:'[테스트] '+name+' 전용',start_date:now,end_date:now,priority:1,success_criteria:'계정 분리 검사',estimated_minutes:10},c),200).data.id;const t=expected(await save(name+' 본인 할 일 생성','task.save',{plan_id:p,title:'[테스트] '+name+' 전용 할 일',due_date:now,priority:1,tags:['테스트'],estimated_minutes:10},c),200).data.id;return {p,t};}
  const a=await seed('A',ca),b=await seed('B',cb);
@@ -65,8 +67,6 @@ try{
  expected(await send('비밀번호 변경','POST','/api/auth',{action:'password',current_password:password,new_password:newPassword},ca),200);
  expected(await send('비밀번호 변경 후 이전 쿠키 거절','GET','/api/diary',null,oldPasswordCookie),401);
  ca=expected(await login(emailA,newPassword),200).cookie;
- console.log('bcrypt 비교용 계정 ID: A='+ua.id+' B='+ub.id);
- await write();const pause=createInterface({input:stdin,output:stdout});await pause.question('Supabase SQL Editor에서 두 계정의 encrypted_password가 서로 다른지 기록하세요. 확인 후 Enter를 누르면 B 테스트 계정을 삭제합니다: ');pause.close();
  expected(await send('계정 삭제 전 본인 자료 성공','GET','/api/diary',null,cb),200);
  expected(await send('새 테스트 B 계정과 자료 삭제','POST','/api/auth',{action:'delete-account',current_password:password,confirmation:'계정 삭제'},cb),200);
  expected(await send('삭제한 계정의 이전 쿠키 거절','GET','/api/diary',null,cb),401);
