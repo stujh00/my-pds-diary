@@ -1,0 +1,7 @@
+{
+  "t06_result_url": "https://my-pds-diary.vercel.app/",
+  "t06_commit": "efa3fdd90ef05f0e083b2fda8abab54c83ed0ac0",
+  "t06_source_url": "https://github.com/stujh00/my-pds-diary/tree/efa3fdd90ef05f0e083b2fda8abab54c83ed0ac0",
+  "continuity": "Apply this change to the existing repository; retain the submitted T06 commit as an ancestor. Do not create a repository by uploading only this ZIP.",
+  "migration": "003_t07_auth.sql removes old unscoped RPCs. 004_assign_owner.template.sql assigns the legacy workspace only to an administrator-verified owner UUID."
+}

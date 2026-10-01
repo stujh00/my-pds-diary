@@ -1,0 +1,37 @@
+{
+  "schema_version": 3,
+  "baseline_schema": "pds-schema-v2.json",
+  "migration": "supabase/003_t07_auth.sql",
+  "owner_path": "workspace.owner_id -> auth.users.id; plan -> workspace; task -> plan; execution/completion -> task; review/version -> plan",
+  "database_access": "RLS enabled with no browser table/RPC grants. Server-only service_role RPCs verify a hashed live application session on every request and derive owner from it. Service keys bypass RLS: RPC owner checks are required, not optional.",
+  "sessions": {
+    "table": "pds_auth_sessions",
+    "columns": ["token_hash", "user_id", "created_at", "expires_at", "revoked_at"],
+    "secret": "256-bit random cookie, never stored in plaintext in DB",
+    "hash": "SHA-256 of random cookie; not a password hashing method",
+    "lifetime_seconds": 3600,
+    "cookie": "HttpOnly; Secure in production; SameSite=Strict; Path=/",
+    "revocation": "Logout/password change revokes all application sessions for that user; expiry/revocation checked inside RPC under row lock."
+  },
+  "passwords": "Supabase Auth managed bcrypt with random salt; auth.users.encrypted_password. Application does not implement password hashing or export Auth data.",
+  "observation": {
+    "tables": {
+      "pds_observations": ["id", "workspace_id", "question", "metric", "unit", "calculation_rule", "initial_rule", "created_at"],
+      "pds_observation_days": ["id", "observation_id", "day_number", "record_date", "session_ids", "actual_minutes", "note", "created_at"],
+      "pds_rule_changes": ["id", "observation_id", "day1_id", "day2_id", "new_rule", "reason", "created_at"]
+    },
+    "metric": "daily actual study minutes; sum selected execution records",
+    "timezone": "Asia/Seoul",
+    "date": "server today; start-date and creation-date of selected logs must match server Seoul date",
+    "days": "Exactly five different actual dates, one saved record per date, ascending order; no future/backdated day input",
+    "day1": "Observation start and first daily record must be on same Seoul date; selected logs start after observation creation",
+    "change": "One change after day2 saved, before day3 study and save; exact day1/day2 IDs referenced",
+    "missing": "Do not impute zero; day remains incomplete",
+    "duplicate": "Reject duplicate session IDs and duplicate daily date; request IDs scoped to workspace",
+    "outlier": "Keep actual value; over 240 minutes requires confirmation note",
+    "rounding": "Integer minute sums; display averages rounded to two decimal places",
+    "week_start": "Monday"
+  },
+  "deletion": "Auth user deletion cascades workspace, diary records, observations, application sessions and request deduplication data. Plan-to-source-review FK uses SET NULL to resolve cycle.",
+  "export": "All owned diary and observation data in one JSON file; exclude Auth password hashes, session hashes/cookies and private service keys."
+}

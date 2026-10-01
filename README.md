@@ -1,81 +1,48 @@
-# 플랜두씨 다이어리 — T06
+# 플랜두씨 다이어리 2 — T07
 
-정보처리기사 실기 공부용 Plan → Do → See 웹앱입니다. HTML/CSS/브라우저 JavaScript, Vercel Node.js Functions, Supabase PostgreSQL을 사용합니다. React/Next.js 없이 동작하며 런타임 외부 npm 의존성이 없습니다.
+제출한 T06 커밋 `efa3fdd90ef05f0e083b2fda8abab54c83ed0ac0`에서 이어 만든 버전입니다. 기존 다이어리의 계획·할 일·실행 기록·돌아보기를 유지하고 인증, 서버의 소유권 검사, 실제 5일 관찰, 계정 관리 기능을 추가합니다.
 
-**T06은 의도적으로 공개 읽기·쓰기 앱입니다.** 누구나 화면과 API에서 자료를 읽고 변경할 수 있습니다. 민감한 기록을 넣지 마세요. T07에서 로그인뿐 아니라 서버의 소유권 검사까지 바꾸기 전에는 개인용 비공개 앱이 아닙니다.
+## 먼저 알아둘 것
 
-## 처음 설치하기
+- 이 ZIP을 **기존 `stujh00/my-pds-diary` 저장소에 변경 사항으로 적용**하세요. 새 저장소에 ZIP만 올리면 T06 커밋이 조상에 남아야 하는 조건을 만족하지 못합니다.
+- 실제 공부 자료는 공개 GitHub에 넣지 않습니다. 백업 JSON과 생성한 복원 SQL도 올리지 않습니다.
+- 실제 5일 원기록과 배포 요청·응답 증거는 사용자가 배포된 앱에서 남겨야 합니다. 자동 테스트 결과가 실제 사용 기록을 대신하지 않습니다.
 
-상세한 클릭 순서는 `docs/DEPLOY.md`에 있습니다.
+## 기존 Supabase DB를 이어 쓰는 설치 순서
 
-1. 과제6 전용 Supabase 프로젝트를 만듭니다. SQL Editor에서 `supabase/001_schema.sql`을 한 번 실행합니다.
-2. 이어서 `supabase/002_study_plan.sql`을 실행합니다. 승인된 공부 계획 1개와 할 일 7개만 넣으며 실행 기록은 넣지 않습니다.
-3. 이 폴더 **안의 파일과 폴더 전체**를 공개 GitHub 저장소 루트에 올립니다. `api`, `lib`, `public`, `supabase`, `contracts` 등을 모두 포함합니다. `.env.local`은 절대 올리지 않습니다.
-4. Vercel에서 해당 GitHub 저장소를 Import합니다. Framework Preset: Other, Build Command: `npm run build`, Output Directory: `dist`, Node.js 22 이상.
-5. Vercel 환경변수 `SUPABASE_URL`, `SUPABASE_SECRET_KEY`를 설정하고 Deploy합니다. 키는 서버용 Secret key입니다. 구형 service_role 키라면 변수 이름 `SUPABASE_SERVICE_ROLE_KEY`를 사용해도 됩니다. 둘 중 하나만 설정하세요.
-6. 첫 화면과 기록을 확인합니다. 배포 접근 제한이 있다면 해제하여 결과물 주소를 시크릿 창에서 확인합니다.
+1. T06 ‘전체 자료 내보내기’로 백업합니다. 이미 이 프로젝트의 `001_schema.sql`과 `002_study_plan.sql`을 실행했다면 **다시 실행하지 않습니다.**
+2. 기존 Supabase 프로젝트의 SQL Editor에서 **`supabase/003_t07_auth.sql`만** 실행합니다. 기존 표와 값은 유지됩니다. 이전 공개 RPC는 제거되므로 T06의 옛 배포/Preview에서도 그 RPC로 자료를 읽을 수 없습니다. 새 코드 배포 전까지 기존 앱은 DB 오류를 표시할 수 있습니다.
+3. 기존 GitHub 저장소에 새 파일과 변경 파일을 반영하고 Vercel에 재배포합니다. Node.js 22 이상, `SUPABASE_URL`과 서버 전용 `SUPABASE_SECRET_KEY`(또는 구형 `SUPABASE_SERVICE_ROLE_KEY`)를 사용합니다. SDK는 서버에서만 실행하며 브라우저용 Auth 키를 추가할 필요가 없습니다. `LOCAL_HTTP=1`을 Vercel에 설정하지 마세요.
+4. 결과물 첫 화면에서 본인의 이메일로 가입합니다. 이메일 인증이 켜져 있다면 메일 인증 후 로그인합니다. 실습용 두 계정을 메일 없이 만들려면 Supabase Authentication의 이메일 인증 설정을 꺼야 합니다. 그 경우 이메일 소유 확인이 없다는 한계를 설명서에 적습니다.
+5. Supabase **Authentication → Users**에서 **본인 계정의 UUID**를 확인합니다. `supabase/004_assign_owner.template.sql`의 `REPLACE_WITH_VERIFIED_OWNER_UUID`만 그 UUID로 바꾸고 SQL Editor에서 실행합니다. 이 단계 전에는 새 계정에 자료가 없어도 정상입니다. ‘첫 가입자에게 자동으로 기존 자료를 주는’ 동작은 없습니다.
+6. 앱에서 새로고침합니다. 기존 계획·할 일·실행 기록이 본인 계정에 표시되는지 확인합니다. 사용자 제공 백업 기준은 계획 3개, 할 일 15개(삭제 이력 포함), 실행 기록 6건입니다. 실제 공부 계획에는 삭제되지 않은 할 일 7개와 실행 기록 3건/90분이 있습니다. 마감일은 바꾸지 않습니다.
+7. 본인 자료가 확인되면 ‘5일 관찰’에서 질문과 처음 규칙을 정하고 그날부터 실제 기록을 시작합니다. 관찰 시작 전에 공부한 기록은 관찰 원기록으로 선택할 수 없습니다.
 
-HTML을 더블클릭하거나 GitHub Pages / Live Server로 열면 DB API가 실행되지 않습니다. Vercel 배포 또는 아래 개발 서버가 필요합니다.
+전체 설치·검사·증빙 절차는 [docs/T07-SETUP.md](docs/T07-SETUP.md), 구현 설명 초안은 [docs/T07-EXPLANATION.md](docs/T07-EXPLANATION.md)을 참고하세요.
 
-## 로컬 실행
+## 다른 T07 DB에 복원하는 경우
 
-Node.js 22 이상에서 프로젝트 루트 터미널:
+T06와 다른 프로젝트를 쓸 때만 새 DB에 `001_schema.sql` → `003_t07_auth.sql`을 실행합니다. **002 예시 계획은 실행하지 않습니다.** 본인 계정 생성 뒤 아래 명령으로 비공개 복원 SQL을 생성해 새 DB에서 실행합니다.
 
 ```sh
-cp .env.example .env.local
-# .env.local의 두 값을 본인의 실제 프로젝트 값으로 수정
-npm run dev
+node scripts/restore-t06.mjs /path/to/pds-all-2026-10-01.json VERIFIED_OWNER_UUID
 ```
 
-Windows PowerShell에서는 첫 명령 대신 `Copy-Item .env.example .env.local`을 사용합니다. 주소는 `http://localhost:3000`입니다. 저장은 연결한 실제 Supabase에 반영됩니다.
+생성 파일 `local-data/restore-private.sql`은 원기록을 포함하므로 GitHub에 올리지 않습니다. 이전 T06 DB에서도 공개 RPC를 폐쇄해야 기존 공개 API로 내 자료가 계속 노출되는 것을 막을 수 있습니다.
+
+## 로컬 실행 및 검사
 
 ```sh
+npm ci
+# .env.example을 .env.local로 복사하고 서버 전용 값을 로컬에서 입력합니다.
+# 로컬 HTTP에서만 .env.local에 LOCAL_HTTP=1을 추가합니다.
+npm run dev
 npm test
 npm run build
+node --env-file-if-exists=.env.local scripts/check-secrets.mjs
 ```
 
-## 자료 규칙
-
-- 단위: 정수 분. 입력 시 서울 시간, DB 실행 시각은 timestamptz, JSON은 UTC 오프셋 포함.
-- 기간 필터: 선택 계획에 딸린 **할 일의 마감일**이 양끝 날짜를 포함한 기간에 속하는지로 결정.
-- ‘계획한 할 일’ = 대상 기간에 속한 삭제되지 않은 할 일 수.
-- ‘완료’ = 그중 현재 done 상태인 수. 완료 이벤트 수를 합산하지 않음.
-- ‘지연’ = 그중 서울 오늘보다 마감일이 앞선 미완료 수.
-- ‘막힘’ = 공백이 아닌 막힘 이유가 하나 이상 있는 대상 할 일 수. 같은 할 일의 여러 기록은 한 번만 셈.
-- 예상 시간 = 대상 할 일의 예상 시간 합, 실제 시간 = 대상 할 일에 연결된 모든 실행 기록의 실제 시간 합.
-- 차이 = 실제 − 예상. 비어 있으면 모두 0.
-- 할 일 완료는 실행 기록과 별개입니다. 공부 기록을 저장한 뒤 필요하면 할 일을 완료하세요.
-- 완료 취소 시 현재 완료 수는 감소하고 이력은 보존됩니다. 새 완료 주기만 다시 완료할 수 있습니다.
-- 삭제는 soft delete이며 화면/집계에서 제외하되 전체 내보내기에는 이력과 연결 기록이 남습니다.
-- 계획 수정 시 최초 버전을 포함해 스냅샷을 계속 보존합니다. 타인의 동시 수정은 revision 충돌로 거절합니다.
-- 돌아보기 저장은 당시 집계·근거 ID·개선점을 저장하고 새 계획과 원자적으로 연결합니다. 기존 돌아보기는 당시 값, 대시보드는 현재 값입니다.
-- 전체 JSON 내보내기에는 계획 이력·삭제 자료·완료 이력·돌아보기까지 포함됩니다. 요청 재시도 캐시는 내부 운영 자료이므로 제외합니다.
-
-정확한 테이블, 관계, 날짜 규칙: `contracts/pds-schema-v2.json`.
-
-## 구성
-
-| 경로 | 역할 |
-|---|---|
-| `public/` | 브라우저 화면·스타일·집계 코드 |
-| `api/diary.js` | Vercel의 공개 GET/POST 서버 API |
-| `lib/db.js` | 서버에서만 Supabase RPC 호출 |
-| `supabase/001_schema.sql` | 테이블·제약·트리거·RPC·권한 |
-| `supabase/002_study_plan.sql` | 실제 사용 예정인 공부 계획·할 일 |
-| `contracts/pds-schema-v2.json` | DB와 날짜/집계 규칙 계약 |
-| `docs/CHECKLIST.md` | T06 항목별 확인 방법 |
-| `docs/T07-HANDOVER.md` | 인증 전환과 5일 기록 준비 |
-| `docs/SUBMISSION.md` | 실제 검증 후 채울 제출문 |
-| `docs/VALIDATION.md` | 개발 환경 검증 결과와 미검증 범위 |
-
-## 보안 경계
-
-Supabase 테이블은 RLS를 켜고 anon/authenticated 직접 권한과 RPC 실행 권한을 막았습니다. Vercel 서버는 secret/service-role 권한으로 고정 RPC만 실행합니다. 이는 비밀키 보호/직접 DB 접근 제한이며 **T06 앱 자체의 사용자 인증이나 개인 자료 보호를 의미하지 않습니다.** API는 공개입니다. 같은 출처 검사도 인증의 대체가 아닙니다.
-
-브라우저에는 키를 보내지 않으며 오류 원문·DB 응답 상세·환경변수를 로그에 출력하지 않습니다. 입력 문자열은 HTML escape 처리하고 CSP는 인라인 스크립트를 막습니다. 운영 키를 GitHub에 올린 적이 있다면 삭제만으로 해결되지 않으므로 폐기·교체하고 과거 Git 기록도 확인하세요.
-
-T07에서는 현재 공개 API와 관리키 경로를 그대로 두면 안 됩니다. `docs/T07-HANDOVER.md`를 먼저 읽으세요.
-
-참조: https://vercel.com/docs/functions/runtimes/node-js · https://supabase.com/docs/guides/getting-started/api-keys · https://supabase.com/docs/guides/database/postgres/row-level-security
-
-선택: 로컬 PostgreSQL 호환 엔진으로 DB 제약/RPC를 다시 검사하려면 `npm install --no-save --package-lock=false @electric-sql/pglite` 후 `node tests/database-check.mjs`를 실행합니다. 이 검사는 임시 메모리 DB만 사용하며 실제 Supabase를 수정하지 않습니다. 테스트 패키지는 배포 앱의 의존성으로 필요하지 않습니다.
+- Auth: Supabase Auth, bcrypt(관리형 서비스), 서버 SDK `@supabase/supabase-js` **2.117.2**.
+- 앱 세션: Node.js `crypto.randomBytes`의 256비트 난수, SHA-256으로 저장, 서버에서 즉시 폐기 가능, 1시간 만료. 비밀번호 해시는 SDK/인증 서비스에 맡기며 앱의 SHA-256은 난수 세션 식별자 저장에만 씁니다.
+- 직접 DB 접근: 브라우저 역할은 모든 다이어리 표와 RPC에 권한이 없습니다. 서버 전용 RPC가 매 요청마다 살아 있는 세션과 주인을 확인합니다. 서버 Secret/Service role은 RLS를 우회하므로 소유권 검사를 생략하면 안 됩니다.
+- 로컬 SQL 검증: PGlite(PostgreSQL)로 실제 마이그레이션, 양방향 접근 제한, 세션 폐기, 계정 삭제, 관찰 규칙을 검사합니다. Supabase Auth 실제 가입/로그인 및 Vercel 배포 검사는 별도로 필요합니다.

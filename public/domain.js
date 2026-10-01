@@ -7,4 +7,4 @@ export function aggregate(data,tasks,today=seoulDate()){
  return {planned:tasks.length,done:tasks.filter(t=>t.status==='done').length,delayed:tasks.filter(t=>t.status!=='done'&&t.due_date<today).length,blocked:blocked.size,estimated,actual,difference:actual-estimated};
 }
 export function sortTasks(tasks,sort){return [...tasks].sort((a,b)=>{let c=sort==='priority'?a.priority-b.priority:sort==='estimate'?a.estimated_minutes-b.estimated_minutes:a.due_date.localeCompare(b.due_date);return c||a.created_at.localeCompare(b.created_at)||a.id.localeCompare(b.id);});}
-export const kstISO=value=>new Date(value+':00+09:00').toISOString();
+export const kstISO=value=>new Date(value+(value.length===16?':00':'')+'+09:00').toISOString();
