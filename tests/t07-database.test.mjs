@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {PGlite} from '@electric-sql/pglite';import {readFile} from 'node:fs/promises';import {randomUUID} from 'node:crypto';
 const A='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',B='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',hashA='a'.repeat(64),hashB='b'.repeat(64);
-async function setup(general=true){const d=new PGlite();await d.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,email text,encrypted_password text);grant usage on schema public,auth to service_role;grant all on auth.users to service_role;`);for(const f of ['001_schema.sql','003_t07_auth.sql',...(general?['005_general_plans.sql']:[]),'006_profile_characters.sql','007_plan_delete.sql','008_more_characters.sql'])await d.exec(await readFile(new URL('../supabase/'+f,import.meta.url),'utf8'));await d.query('insert into auth.users(id) values($1),($2)',[A,B]);await d.query('select public.pds_account_workspace($1)',[A]);await d.query('select public.pds_account_workspace($1)',[B]);await d.query('insert into public.pds_auth_sessions(token_hash,user_id) values($1,$2),($3,$4)',[hashA,A,hashB,B]);return d;}
+async function setup(general=true,calendar=true){const d=new PGlite();await d.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,email text,encrypted_password text);grant usage on schema public,auth to service_role;grant all on auth.users to service_role;`);for(const f of ['001_schema.sql','003_t07_auth.sql',...(general?['005_general_plans.sql']:[]),'006_profile_characters.sql','007_plan_delete.sql','008_more_characters.sql',...(calendar?['009_task_calendar.sql']:[])])await d.exec(await readFile(new URL('../supabase/'+f,import.meta.url),'utf8'));await d.query('insert into auth.users(id) values($1),($2)',[A,B]);await d.query('select public.pds_account_workspace($1)',[A]);await d.query('select public.pds_account_workspace($1)',[B]);await d.query('insert into public.pds_auth_sessions(token_hash,user_id) values($1,$2),($3,$4)',[hashA,A,hashB,B]);return d;}
 const call=async(d,fn,args)=>(await d.query(`select public.${fn}(${args.map((_,i)=>'$'+(i+1)).join(',')}) as result`,args)).rows[0].result;
 const save=(d,action,data,hash,id=randomUUID())=>call(d,'pds_mutate',[action,JSON.stringify(data),id,hash]);
 const snap=(d,h)=>call(d,'pds_snapshot',[h]);
@@ -133,5 +133,19 @@ test('Expanded characters migration preserves saved selection and accepts all 12
  for(const c of characters){await profileSave(d,c.id,hashB);assert.equal((await snap(d,hashB)).profile.character_id,c.id);}
  assert.deepEqual((await snap(d,hashA)).profile,before);
  await rejected(()=>profileSave(d,'unknown'),'PT400');assert.deepEqual((await snap(d,hashA)).profile,before);
+ }finally{await d.close();}
+});
+
+test('Calendar migration preserves old tasks and stores dates with revision, owner and ordering checks',async()=>{
+ const d=await setup(true,false);try{
+ const p=(await newPlan(d,hashA,'기념일 준비')).id,t=(await newTask(d,hashA,p,'기존 할 일')).id;
+ const old=(await snap(d,hashA)).tasks[0];const sql=await readFile(new URL('../supabase/009_task_calendar.sql',import.meta.url),'utf8');await d.exec(sql);await d.exec(sql);
+ const migrated=(await snap(d,hashA)).tasks[0];assert.equal(migrated.start_date,null);delete migrated.start_date;assert.deepEqual(migrated,old);
+ const values={id:t,revision:1,title:'일정 준비',start_date:'2026-10-05',due_date:'2026-10-08',priority:1,tags:['일정'],estimated_minutes:20};
+ await rejected(()=>save(d,'task.save',values,hashB),'PT404');await save(d,'task.save',values,hashA);
+ let current=(await snap(d,hashA)).tasks[0];assert.equal(current.start_date,'2026-10-05');assert.equal(current.due_date,'2026-10-08');assert.equal(current.revision,2);
+ await rejected(()=>save(d,'task.save',{...values,revision:2,start_date:'2026-10-09'},hashA),'23514');assert.equal((await snap(d,hashA)).tasks[0].revision,2);
+ const {start_date,...legacy}=values;await save(d,'task.save',{...legacy,revision:2},hashA);assert.equal((await snap(d,hashA)).tasks[0].start_date,'2026-10-05');
+ const one=(await save(d,'task.save',{...values,id:undefined,revision:undefined,plan_id:p,start_date:'2026-10-10',due_date:'2026-10-10'},hashA)).id;assert.equal((await snap(d,hashA)).tasks.find(x=>x.id===one).start_date,'2026-10-10');
  }finally{await d.close();}
 });

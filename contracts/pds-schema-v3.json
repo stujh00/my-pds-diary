@@ -1,7 +1,7 @@
 {
   "schema_version": 3,
   "baseline_schema": "pds-schema-v2.json",
-  "migration": "supabase/003_t07_auth.sql, then 005_general_plans.sql, 006_profile_characters.sql, 007_plan_delete.sql, 008_more_characters.sql",
+  "migration": "supabase/003_t07_auth.sql, then 005_general_plans.sql, 006_profile_characters.sql, 007_plan_delete.sql, 008_more_characters.sql, 009_task_calendar.sql",
   "owner_path": "workspace.owner_id -> auth.users.id; plan -> workspace; task -> plan; execution/completion -> task; review/version -> plan",
   "database_access": "RLS enabled with no browser table/RPC grants. Server-only service_role RPCs verify a hashed live application session on every request and derive owner from it. Service keys bypass RLS: RPC owner checks are required, not optional.",
   "sessions": {
@@ -122,5 +122,13 @@
     "confirmation": "Exact 계획 삭제 and current revision required; request replay scoped to workspace",
     "cascade": "Plan, tasks, sessions, completions, plan versions and reviews deleted atomically; next plan remains with source_review_id cleared by FK",
     "observation": "Deletion rejected with PT409 if any execution log is referenced in saved observation_days; fixed evidence remains intact"
+  },
+  "calendar": {
+    "source": "Owned tasks only; no separate duplicate calendar event records",
+    "start_date": "pds_tasks.start_date: nullable DATE; null preserves legacy records; check null or <=due_date",
+    "display": "Inclusive start_date..due_date; legacy null start displays only due_date; deleted tasks excluded; unique monthly overlap count",
+    "filters": "All owned plans by default; optional plan and status; Monday-first grid; date-only UTC arithmetic with today from Asia/Seoul",
+    "review": "Existing review metrics still select by due_date; calendar overlap does not change metrics",
+    "storage": "Start date included in task save/update/snapshot/export; omitted legacy start_date on update preserves stored value"
   }
 }
