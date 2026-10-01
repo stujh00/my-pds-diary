@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {PGlite} from '@electric-sql/pglite';import {readFile} from 'node:fs/promises';import {randomUUID} from 'node:crypto';
 const A='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',B='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',hashA='a'.repeat(64),hashB='b'.repeat(64);
-async function setup(){const d=new PGlite();await d.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,email text,encrypted_password text);grant usage on schema public,auth to service_role;grant all on auth.users to service_role;`);for(const f of ['001_schema.sql','003_t07_auth.sql'])await d.exec(await readFile(new URL('../supabase/'+f,import.meta.url),'utf8'));await d.query('insert into auth.users(id) values($1),($2)',[A,B]);await d.query('select public.pds_account_workspace($1)',[A]);await d.query('select public.pds_account_workspace($1)',[B]);await d.query('insert into public.pds_auth_sessions(token_hash,user_id) values($1,$2),($3,$4)',[hashA,A,hashB,B]);return d;}
+async function setup(general=true){const d=new PGlite();await d.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,email text,encrypted_password text);grant usage on schema public,auth to service_role;grant all on auth.users to service_role;`);for(const f of ['001_schema.sql','003_t07_auth.sql',...(general?['005_general_plans.sql']:[])])await d.exec(await readFile(new URL('../supabase/'+f,import.meta.url),'utf8'));await d.query('insert into auth.users(id) values($1),($2)',[A,B]);await d.query('select public.pds_account_workspace($1)',[A]);await d.query('select public.pds_account_workspace($1)',[B]);await d.query('insert into public.pds_auth_sessions(token_hash,user_id) values($1,$2),($3,$4)',[hashA,A,hashB,B]);return d;}
 const call=async(d,fn,args)=>(await d.query(`select public.${fn}(${args.map((_,i)=>'$'+(i+1)).join(',')}) as result`,args)).rows[0].result;
 const save=(d,action,data,hash,id=randomUUID())=>call(d,'pds_mutate',[action,JSON.stringify(data),id,hash]);
 const snap=(d,h)=>call(d,'pds_snapshot',[h]);
@@ -80,3 +80,14 @@ test('Real SQL: one rule change exactly after day2; five ordered days and deleti
  await d.query('delete from auth.users where id=$1',[A]);for(const table of ['pds_rule_changes','pds_observation_days','pds_observations','pds_plan_versions','pds_requests','pds_auth_sessions']){const x=await d.query(`select count(*)::int as n from public.${table}`);assert.equal(x.rows[0].n,table==='pds_auth_sessions'?1:0);}
  }finally{await d.close();}
 });
+
+test('General plan migration preserves existing observation and changes only new defaults',async()=>{const d=await setup(false);try{
+ await call(d,'pds_observe',['observation.start',JSON.stringify({question:'기존 질문',initial_rule:'기존 규칙'}),randomUUID(),hashA]);
+ const old=(await snap(d,hashA)).observations[0];assert.equal(old.metric,'실제 공부 시간');
+ const sql=await readFile(new URL('../supabase/005_general_plans.sql',import.meta.url),'utf8');await d.exec(sql);await d.exec(sql);
+ assert.deepEqual((await snap(d,hashA)).observations[0],old);
+ await call(d,'pds_observe',['observation.start',JSON.stringify({question:'일반 계획 질문',initial_rule:'30분 실행'}),randomUUID(),hashB]);
+ assert.equal((await snap(d,hashB)).observations[0].metric,'실제 실행 시간');
+ const c=randomUUID();await d.query('insert into auth.users(id) values($1)',[c]);const w=await call(d,'pds_account_workspace',[c]);assert.equal((await d.query('select title from public.pds_workspaces where id=$1',[w])).rows[0].title,'내 계획 다이어리');
+ await assert.rejects(()=>d.query("update public.pds_observations set metric='금액'"),e=>e.code==='23514');
+ }finally{await d.close();}});
