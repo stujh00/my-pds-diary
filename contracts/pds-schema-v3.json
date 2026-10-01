@@ -1,7 +1,7 @@
 {
   "schema_version": 3,
   "baseline_schema": "pds-schema-v2.json",
-  "migration": "supabase/003_t07_auth.sql, then supabase/005_general_plans.sql",
+  "migration": "supabase/003_t07_auth.sql, then 005_general_plans.sql, 006_profile_characters.sql, 007_plan_delete.sql",
   "owner_path": "workspace.owner_id -> auth.users.id; plan -> workspace; task -> plan; execution/completion -> task; review/version -> plan",
   "database_access": "RLS enabled with no browser table/RPC grants. Server-only service_role RPCs verify a hashed live application session on every request and derive owner from it. Service keys bypass RLS: RPC owner checks are required, not optional.",
   "sessions": {
@@ -65,5 +65,24 @@
     "week_start": "Monday"
   },
   "deletion": "Auth user deletion cascades workspace, diary records, observations, application sessions and request deduplication data. Plan-to-source-review FK uses SET NULL to resolve cycle.",
-  "export": "All owned diary and observation data in one JSON file; exclude Auth password hashes, session hashes/cookies and private service keys."
+  "export": "All owned diary and observation data in one JSON file; exclude Auth password hashes, session hashes/cookies and private service keys.",
+  "profile": {
+    "table": "pds_profiles",
+    "columns": [
+      "owner_id",
+      "character_id",
+      "updated_at"
+    ],
+    "owner": "Live application session determines owner_id; client owner_id ignored; one row per Auth user",
+    "character": "Allow-listed ID; browser maps ID to local animal/fruit SVG; default cat before first save",
+    "storage": "Server DB; included in owned JSON export as profile; deleted with Auth user",
+    "permissions": "RLS enabled; no anon/authenticated table or RPC grants; service_role only"
+  },
+  "plan_deletion": {
+    "rpc": "pds_plan_delete",
+    "owner": "Live app session and workspace ownership required; foreign/missing plans return PT404",
+    "confirmation": "Exact 계획 삭제 and current revision required; request replay scoped to workspace",
+    "cascade": "Plan, tasks, sessions, completions, plan versions and reviews deleted atomically; next plan remains with source_review_id cleared by FK",
+    "observation": "Deletion rejected with PT409 if any execution log is referenced in saved observation_days; fixed evidence remains intact"
+  }
 }
