@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {PGlite} from '@electric-sql/pglite';import {readFile} from 'node:fs/promises';import {randomUUID} from 'node:crypto';
 const A='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',B='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',hashA='a'.repeat(64),hashB='b'.repeat(64);
-async function setup(general=true){const d=new PGlite();await d.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,email text,encrypted_password text);grant usage on schema public,auth to service_role;grant all on auth.users to service_role;`);for(const f of ['001_schema.sql','003_t07_auth.sql',...(general?['005_general_plans.sql']:[]),'006_profile_characters.sql','007_plan_delete.sql'])await d.exec(await readFile(new URL('../supabase/'+f,import.meta.url),'utf8'));await d.query('insert into auth.users(id) values($1),($2)',[A,B]);await d.query('select public.pds_account_workspace($1)',[A]);await d.query('select public.pds_account_workspace($1)',[B]);await d.query('insert into public.pds_auth_sessions(token_hash,user_id) values($1,$2),($3,$4)',[hashA,A,hashB,B]);return d;}
+async function setup(general=true){const d=new PGlite();await d.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,email text,encrypted_password text);grant usage on schema public,auth to service_role;grant all on auth.users to service_role;`);for(const f of ['001_schema.sql','003_t07_auth.sql',...(general?['005_general_plans.sql']:[]),'006_profile_characters.sql','007_plan_delete.sql','008_more_characters.sql'])await d.exec(await readFile(new URL('../supabase/'+f,import.meta.url),'utf8'));await d.query('insert into auth.users(id) values($1),($2)',[A,B]);await d.query('select public.pds_account_workspace($1)',[A]);await d.query('select public.pds_account_workspace($1)',[B]);await d.query('insert into public.pds_auth_sessions(token_hash,user_id) values($1,$2),($3,$4)',[hashA,A,hashB,B]);return d;}
 const call=async(d,fn,args)=>(await d.query(`select public.${fn}(${args.map((_,i)=>'$'+(i+1)).join(',')}) as result`,args)).rows[0].result;
 const save=(d,action,data,hash,id=randomUUID())=>call(d,'pds_mutate',[action,JSON.stringify(data),id,hash]);
 const snap=(d,h)=>call(d,'pds_snapshot',[h]);
@@ -122,5 +122,16 @@ test('Plan deletion: foreign owner rejected, confirmation/revision checked, casc
  for(const k of ['tasks','sessions','completions','reviews'])assert.equal(after[k].length,0);assert.ok(after.plan_versions.every(x=>x.plan_id!==pa));
  await remove(hashA,{},key);await rejected(()=>remove(hashA,{}),'PT404');assert.equal((await snap(d,hashB)).tasks.length,1);
  await d.query('update public.pds_auth_sessions set revoked_at=now() where user_id=$1',[B]);await rejected(()=>remove(hashB,{id:pb}),'PT401');
+ }finally{await d.close();}
+});
+
+test('Expanded characters migration preserves saved selection and accepts all 12 additions',async()=>{
+ const d=await setup();try{
+ await profileSave(d,'rabbit');const before=(await snap(d,hashA)).profile;
+ const sql=await readFile(new URL('../supabase/008_more_characters.sql',import.meta.url),'utf8');await d.exec(sql);await d.exec(sql);assert.deepEqual((await snap(d,hashA)).profile,before);
+ const {characters}=await import('../public/characters.js');assert.equal(characters.length,36);assert.equal(characters.filter(c=>c.category==='동물').length,18);assert.equal(characters.filter(c=>c.category==='과일').length,18);
+ for(const c of characters){await profileSave(d,c.id,hashB);assert.equal((await snap(d,hashB)).profile.character_id,c.id);}
+ assert.deepEqual((await snap(d,hashA)).profile,before);
+ await rejected(()=>profileSave(d,'unknown'),'PT400');assert.deepEqual((await snap(d,hashA)).profile,before);
  }finally{await d.close();}
 });

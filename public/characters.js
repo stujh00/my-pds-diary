@@ -142,6 +142,66 @@ export const characters = [
     "name": "키위",
     "emoji": "🥝",
     "category": "과일"
+  },
+  {
+    "id": "monkey",
+    "name": "원숭이",
+    "category": "동물"
+  },
+  {
+    "id": "dolphin",
+    "name": "돌고래",
+    "category": "동물"
+  },
+  {
+    "id": "wolf",
+    "name": "늑대",
+    "category": "동물"
+  },
+  {
+    "id": "seal",
+    "name": "물개",
+    "category": "동물"
+  },
+  {
+    "id": "shark",
+    "name": "상어",
+    "category": "동물"
+  },
+  {
+    "id": "squirrel",
+    "name": "다람쥐",
+    "category": "동물"
+  },
+  {
+    "id": "mango",
+    "name": "망고",
+    "category": "과일"
+  },
+  {
+    "id": "melon",
+    "name": "메론",
+    "category": "과일"
+  },
+  {
+    "id": "orientalmelon",
+    "name": "참외",
+    "category": "과일"
+  },
+  {
+    "id": "plum",
+    "name": "자두",
+    "category": "과일"
+  },
+  {
+    "id": "blueberry",
+    "name": "블루베리",
+    "category": "과일"
+  },
+  {
+    "id": "avocado",
+    "name": "아보카도",
+    "category": "과일"
   }
 ];
 characters.forEach(c => { c.image = `/characters/${c.id}.svg`; });
